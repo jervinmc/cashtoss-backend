@@ -28,11 +28,11 @@ app=Flask(__name__)
 CORS(app)
 api=Api(app)
 #NLTK Downloads (Need to do only once)
-nltk.download('punkt') 
-nltk.download('stopwords')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('wordnet') 
-nltk.download('nps_chat')
+# nltk.download('punkt') 
+# nltk.download('stopwords')
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('wordnet') 
+# nltk.download('nps_chat')
 
 #Global Constants
 GREETING_INPUTS    = ("hello", "hi")
@@ -197,10 +197,12 @@ class Usermanagement(Resource):
         except:
             return {"status":"Failed"}
     
-    def put(self,pk):
+    def put(self,pk=None):
         data = request.get_json()
+        print(data)
         try:
-            self.db.insert(f"UPDATE users set email='{data.get('email')}',password='{data.get('password')}' where id={pk}")
+            self.db.insert(f"UPDATE users set email='{data.get('email')}' where id={pk}")
+            print("saved")
             return {"status":"Success"}
         except Exception as e:
             return {"status":"Failed"}
@@ -274,8 +276,6 @@ class Receipt(Resource):
 
 
 
-
-
 class Login(Resource):
     def __init__(self):
         self.db=Database()
@@ -287,13 +287,30 @@ class Login(Resource):
             res = self.db.query(f"SELECT * FROM users where email='{data.get('email')}' and password='{data.get('password')}'")
             if(res==[]):
                 print(res)
-                return Response({"status":"Wrong Credentials"},status=404)
+                return {"status":400}
             else:
-                return Response({"status":"success"},status=201)
+                print(res[0][0])
+                return {"id":res[0][0],"email":res[0][1],"password":res[0][2],"status":201}
             
         except Exception as e:
             print(e)
             return {"status":"Failed Input"}
+
+class Register(Resource):
+    def __init__(self):
+        self.db=Database()
+
+    def post(self,pk=None):
+        data = request.get_json()
+        print(data)
+        try:
+            res = self.db.insert(f"INSERT INTO users values(default,'{data.get('email')}','{data.get('password')}')")
+            return Response({"status":"success"},status=201)
+            
+        except Exception as e:
+            print(e)
+            return {"status":"Failed Input"}
+
 
 class Settings(Resource):
     def __init__(self):
@@ -343,6 +360,8 @@ class UploadTest(Resource):
 
 api.add_resource(Usermanagement,'/api/v1/users/<int:pk>')
 api.add_resource(Login,'/api/v1/login')
+api.add_resource(Register,'/api/v1/register')
+Register
 api.add_resource(Chatbot,'/api/v1/chat')
 api.add_resource(Receipt,'/api/v1/receipt')
 api.add_resource(Settings,'/api/v1/settings')
