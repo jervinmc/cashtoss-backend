@@ -28,11 +28,11 @@ app=Flask(__name__)
 CORS(app)
 api=Api(app)
 #NLTK Downloads (Need to do only once)
-nltk.download('punkt') 
-nltk.download('stopwords')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('wordnet') 
-nltk.download('nps_chat')
+# nltk.download('punkt') 
+# nltk.download('stopwords')
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('wordnet') 
+# nltk.download('nps_chat')
 
 #Global Constants
 GREETING_INPUTS    = ("hello", "hi")
@@ -211,13 +211,14 @@ class Categories(Resource):
     def __init__(self):
         self.db=Database()
         self.listitem=[]
-    def get(self,category=None):
+    def get(self,category=None,pk=None):
         print(category)
+        print(pk)
         try:
-            res = self.db.query(f"select * from receipt where categories='{category}' ")
+            res = self.db.query(f"select * from receipt where categories='{category}' and user_id='{pk}' ")
             if(res==[]):
                 print("okay")
-                return Response({"status":"Wrong Credentials"},status=404)
+                return None
             else:
                 print(res)
                 listitem=[{"vendor_name":i[2],"created_date":i[3],"category":i[4],"total":i[5],"image":f"https://cashtoss.s3.ap-southeast-1.amazonaws.com/{i[6]}"} for i in res]
@@ -231,10 +232,10 @@ class Categories(Resource):
 class Receipt(Resource):
     def __init__(self):
         self.db=Database()
-    def get(self):
+    def get(self,pk=None):
         item={"total":0.0,"Medication":0.0,"Groceries":0.0,"Others":0.0,"Food":0.0,"Transportation":0.0,"Education":0.0}
-        query = self.db.query(f"SELECT categories,sum(total) FROM receipt group by categories")
-        total = self.db.query(f"SELECT SUM(total) FROM receipt")
+        query = self.db.query(f"SELECT categories,sum(total) FROM receipt where user_id = '{pk}' group by categories ")
+        total = self.db.query(f"SELECT SUM(total) FROM receipt where user_id='{pk}'")
         # item =  [{f"{x[0]}":float(x[1]) for x in query}]
         for x in query:
             if(x[0]=='Medication'):
@@ -260,10 +261,10 @@ class Receipt(Resource):
                 print(res)
                 return Response({"status":"Wrong Credentials"},status=404)
             else:
-                result_data = self.db.query(f"SELECT SUM(total) FROM receipt")
-                result_settings = self.db.query(f"SELECT totalAmount from settings")
+                result_data = self.db.query(f"SELECT SUM(total) FROM receipt where user_id = '{data.get('id')}'")
+                result_settings = self.db.query(f"SELECT totalAmount from users where id = {data.get('id')}")
                 id = self.db.query(f"select max(id) from receipt")
-                print(id[0])
+                print(result_settings[0][0])
                 if(int(result_data[0][0])>=(result_settings[0][0])):     
                     print(result_settings[0][0])    
                     return {"status":"exceed","id":id[0][0]}
@@ -317,7 +318,7 @@ class Settings(Resource):
         self.db=Database()
 
     def get(self,pk=None):
-        result_settings = self.db.query(f"SELECT totalAmount from settings")
+        result_settings = self.db.query(f"SELECT totalAmount from users where id={pk} ")
         return result_settings[0][0]
 
     def post(self):
@@ -363,10 +364,10 @@ api.add_resource(Login,'/api/v1/login')
 api.add_resource(Register,'/api/v1/register')
 Register
 api.add_resource(Chatbot,'/api/v1/chat')
-api.add_resource(Receipt,'/api/v1/receipt')
-api.add_resource(Settings,'/api/v1/settings')
+api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
+api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 api.add_resource(UploadTest,'/api/v1/uploadtest')
-api.add_resource(Categories,'/api/v1/categories/<string:category>')
+api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
     app.run(debug=True,host='0.0.0.0')
