@@ -28,16 +28,16 @@ app=Flask(__name__)
 CORS(app)
 api=Api(app)
 #NLTK Downloads (Need to do only once)
-# nltk.download('punkt') 
-# nltk.download('stopwords')
-# nltk.download('averaged_perceptron_tagger')
-# nltk.download('wordnet') 
-# nltk.download('nps_chat')
+nltk.download('punkt') 
+nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet') 
+nltk.download('nps_chat')
 
 #Global Constants
 GREETING_INPUTS    = ("hello", "hi")
 GREETING_RESPONSES = ["hi", "hey", "*nods*", "hi there", "Talkin' to me?"]
-FILENAME           = "medical_faq.txt"
+FILENAME           = "datasets.txt"
 #Global Variables
 lem = nltk.stem.WordNetLemmatizer()
 remove_punctuation = dict((ord(punct), None) for punct in string.punctuation)
