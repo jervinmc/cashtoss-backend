@@ -27,12 +27,13 @@ now = datetime.now().date()
 app=Flask(__name__)
 CORS(app)
 api=Api(app)
+from decouple import config
 #NLTK Downloads (Need to do only once)
-nltk.download('punkt') 
-nltk.download('stopwords')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('wordnet') 
-nltk.download('nps_chat')
+# nltk.download('punkt') 
+# nltk.download('stopwords')
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('wordnet') 
+# nltk.download('nps_chat')
 
 #Global Constants
 GREETING_INPUTS    = ("hello", "hi")
@@ -221,7 +222,8 @@ class Categories(Resource):
                 return None
             else:
                 print(res)
-                listitem=[{"vendor_name":i[2],"created_date":i[3],"category":i[4],"total":i[5],"image":f"https://cashtoss.s3.ap-southeast-1.amazonaws.com/{i[6]}"} for i in res]
+                listitem=[{"vendor_name":i[2],"created_date":i[3],"category":i[4],
+                "total":i[5],"image":f"https://cashtosspublic.s3.us-east-2.amazonaws.com/{i[6]}"} for i in res]
                 print(listitem)
                 return listitem
         except Exception as e:
@@ -256,7 +258,8 @@ class Receipt(Resource):
     def post(self,pk=None):
         data = request.get_json()
         try:
-            res = self.db.insert(f"INSERT INTO receipt values(default,'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}',{data.get('total')})")
+            id = self.db.query("select max(id)+1 from receipt")
+            res = self.db.insert(f"INSERT INTO receipt values({id[0][0]},'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}',{data.get('total')},'{data.get('image')}')")
             if(res==[]):
                 print(res)
                 return Response({"status":"Wrong Credentials"},status=404)
@@ -305,7 +308,8 @@ class Register(Resource):
         data = request.get_json()
         print(data)
         try:
-            res = self.db.insert(f"INSERT INTO users values(default,'{data.get('email')}','{data.get('password')}')")
+            id = self.db.query("select max(id)+1 from users")
+            res = self.db.insert(f"INSERT INTO users values({id[0][0]},'{data.get('email')}','{data.get('password')}')")
             return Response({"status":"success"},status=201)
             
         except Exception as e:
@@ -321,14 +325,17 @@ class Settings(Resource):
         result_settings = self.db.query(f"SELECT totalAmount from users where id={pk} ")
         return result_settings[0][0]
 
-    def post(self):
+    def post(self,pk):
         res = request.get_json()
         print(res)
         try:
-            self.db.query(f"UPDATE settings set totalAmount={res.get('totalAmount')}")
+            self.db.query(f"UPDATE users set totalAmount={res.get('totalAmount')} where id={pk}")
             return {}
-        except:
+        except Exception as e:
+            print(e)
             return {}
+
+
 
 class Upload(Resource):
     def __init__(self):
@@ -338,8 +345,8 @@ class Upload(Resource):
         imageFile=request.files['image']
         file_path=os.path.join('', imageFile.filename) # path where file can be saved
         imageFile.save(file_path)
-        client = boto3.client('s3',aws_access_key_id="AKIA5HVDPP5SGQIJIXO3",aws_secret_access_key="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")
-        client.upload_file(f'{imageFile.filename}','cashtoss',f'{imageFile.filename}')
+        client = boto3.client('s3',aws_access_key_id=config("AWS_ACCESS_ID"),aws_secret_access_key=config("AWS_SECRET_ID"))
+        client.upload_file(f'{imageFile.filename}','cashtosspublic',f'{imageFile.filename}')
         print(pk)
         self.db.insert(f"UPDATE receipt set image='{imageFile.filename}' where id={pk} ")
         # data = request.get_json()
