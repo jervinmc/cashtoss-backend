@@ -29,11 +29,11 @@ CORS(app)
 api=Api(app)
 from decouple import config
 #NLTK Downloads (Need to do only once)
-# nltk.download('punkt') 
-# nltk.download('stopwords')
-# nltk.download('averaged_perceptron_tagger')
-# nltk.download('wordnet') 
-# nltk.download('nps_chat')
+nltk.download('punkt') 
+nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet') 
+nltk.download('nps_chat')
 
 #Global Constants
 GREETING_INPUTS    = ("hello", "hi")
