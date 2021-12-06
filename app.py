@@ -14,10 +14,15 @@ import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from datetime import datetime
+import smtplib
 import nltk.classify
 from sklearn.svm import LinearSVC
 import requests
-from datetime import datetime
+import random
+import string
 from functools import wraps
 import time
 from Database import Database
@@ -170,6 +175,8 @@ class Chatbot(Resource):
 
         return {"data":"Others"}
 
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 class Usermanagement(Resource):
     def __init__(self):
@@ -202,10 +209,19 @@ class Usermanagement(Resource):
         data = request.get_json()
         print(data)
         try:
-            self.db.insert(f"UPDATE users set email='{data.get('email')}' where id={pk}")
+            isValid = self.db.query(f"select * from users where email='{data.get('email')}' and id={data.get('id')}")
+            if(len(isValid)==0):
+                data_fetch = self.db.query(f"select * from users where email='{data.get('email')}'")
+                if(len(data_fetch)>0):
+                    return {"status":"Failed Input"}
+            if(data.get('password')=='' or data.get('password')==None):
+                self.db.insert(f"UPDATE users set email='{data.get('email')}' where id={pk}")
+            else:
+                self.db.insert(f"UPDATE users set email='{data.get('email')}',password='{data.get('password')}' where id={pk}")
             print("saved")
             return {"status":"Success"}
         except Exception as e:
+            print(e)
             return {"status":"Failed"}
 
 class Categories(Resource):
@@ -231,9 +247,47 @@ class Categories(Resource):
             return {"status":f"{e}"}
 
 
+class ResetPassword(Resource):
+    def __init__(self):
+        self.db=Database()
+        
+    def post(self):
+        res = request.get_json()
+        pw = id_generator()
+        print(res)
+        self.db.insert(f"UPDATE users set password='{pw}' where email='{res.get('email')}' ")
+        msg = MIMEMultipart()
+        msg.add_header('Content-Type', 'text/html')
+        msg['To'] = str(res.get('email'))
+        msg['Subject'] = "Reset password from Cashtoss App"
+        part1=MIMEText("""\
+            <html>
+                <body>
+                    Here's your new password : """+pw+"""
+                </body>
+            </html>
+            
+            """,'html')
+
+        msg.attach(part1)
+        server = smtplib.SMTP('smtp.gmail.com: 587')
+        server.starttls()
+        server.login('jmacalawapersonal@gmail.com', "wew123WEW")
+        # send the message via the server.
+        server.sendmail('jmacalawapersonal@gmail.com', msg['To'], msg.as_string())
+
+        server.quit()
+        
+        print("successfully sent email to %s:" % (msg['To']))
+        
+        return {"status":"success"}
+
 class Receipt(Resource):
     def __init__(self):
         self.db=Database()
+    def delete(self,pk):
+        self.db.insert(f"delete from receipt where user_id={pk} ")
+
     def get(self,pk=None):
         item={"total":0.0,"Medication":0.0,"Groceries":0.0,"Others":0.0,"Food":0.0,"Transportation":0.0,"Education":0.0}
         query = self.db.query(f"SELECT categories,sum(total) FROM receipt where user_id = '{pk}' group by categories ")
@@ -254,11 +308,13 @@ class Receipt(Resource):
                 item['Utilities']=float(x[1])
         item['total']=total[0][0]
         return item
-
+        
     def post(self,pk=None):
         data = request.get_json()
+        id = self.db.query("select max(id)+1 from receipt")
+        if(id[0][0]==None):
+            id=0
         try:
-            id = self.db.query("select max(id)+1 from receipt")
             res = self.db.insert(f"INSERT INTO receipt values({id[0][0]},'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}',{data.get('total')},'{data.get('image')}')")
             if(res==[]):
                 print(res)
@@ -307,10 +363,14 @@ class Register(Resource):
     def post(self,pk=None):
         data = request.get_json()
         print(data)
+        data_fetch = self.db.query(f"select * from users where email='{data.get('email')}'")
+        
+        if(len(data_fetch)>0):
+            return {"status":"Failed Input"}
         try:
             id = self.db.query("select max(id)+1 from users")
             res = self.db.insert(f"INSERT INTO users values({id[0][0]},'{data.get('email')}','{data.get('password')}')")
-            return Response({"status":"success"},status=201)
+            return Response({"status":"Success"},status=201)
             
         except Exception as e:
             print(e)
@@ -347,34 +407,18 @@ class Upload(Resource):
         imageFile.save(file_path)
         client = boto3.client('s3',aws_access_key_id=config("AWS_ACCESS_ID"),aws_secret_access_key=config("AWS_SECRET_ID"))
         client.upload_file(f'{imageFile.filename}','cashtosspublic',f'{imageFile.filename}')
-        print(pk)
         self.db.insert(f"UPDATE receipt set image='{imageFile.filename}' where id={pk} ")
-        # data = request.get_json()
-        # print("open pin 1")
         return {"status":"Successful"}
-
-
-class UploadTest(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def post(self,pk=None):
-        file = request.files['file']
-        file_path=os.path.join('', file.filename) # path where file can be saved
-        file.save(file_path)
-        client = boto3.client('s3',aws_access_key_id="AKIA5HVDPP5SGQIJIXO3",aws_secret_access_key="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")
-        client.upload_file(f'{file.filename}','comappt',f'{file.filename}')
-        return {"filename":f"https://comappt.s3.ap-southeast-1.amazonaws.com/{file.filename}"}
 
 api.add_resource(Usermanagement,'/api/v1/users/<int:pk>')
 api.add_resource(Login,'/api/v1/login')
 api.add_resource(Register,'/api/v1/register')
-Register
 api.add_resource(Chatbot,'/api/v1/chat')
+api.add_resource(ResetPassword,'/api/v1/reset_password')
 api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
 api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
-api.add_resource(UploadTest,'/api/v1/uploadtest')
+# api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
     app.run(debug=True,host='0.0.0.0')
