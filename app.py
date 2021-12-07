@@ -239,7 +239,7 @@ class Categories(Resource):
             else:
                 print(res)
                 listitem=[{"vendor_name":i[2],"created_date":i[3],"category":i[4],
-                "total":i[5],"image":f"https://cashtosspublic.s3.us-east-2.amazonaws.com/{i[6]}"} for i in res]
+                "image":f"https://cashtosspublic.s3.us-east-2.amazonaws.com/{i[5]}","total":i[6]} for i in res]
                 print(listitem)
                 return listitem
         except Exception as e:
@@ -272,9 +272,9 @@ class ResetPassword(Resource):
         msg.attach(part1)
         server = smtplib.SMTP('smtp.gmail.com: 587')
         server.starttls()
-        server.login('jmacalawapersonal@gmail.com', "wew123WEW")
+        server.login('Cashtoss8@gmail.com', "Cashtoss2021!")
         # send the message via the server.
-        server.sendmail('jmacalawapersonal@gmail.com', msg['To'], msg.as_string())
+        server.sendmail('Cashtoss8@gmail.com', msg['To'], msg.as_string())
 
         server.quit()
         
@@ -314,8 +314,10 @@ class Receipt(Resource):
         id = self.db.query("select max(id)+1 from receipt")
         if(id[0][0]==None):
             id=0
+        else:
+            id=id[0][0]
         try:
-            res = self.db.insert(f"INSERT INTO receipt values({id[0][0]},'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}',{data.get('total')},'{data.get('image')}')")
+            res = self.db.insert(f"INSERT INTO receipt values({id},'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}','{data.get('image')}',{float(data.get('total'))})")
             if(res==[]):
                 print(res)
                 return Response({"status":"Wrong Credentials"},status=404)
@@ -421,4 +423,4 @@ api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0')
+    app.run(debug=True,host='0.0.0.0',port="5001")
