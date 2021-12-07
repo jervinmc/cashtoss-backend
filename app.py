@@ -423,4 +423,4 @@ api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0',port="5001")
+    app.run(debug=True,host='0.0.0.0')
