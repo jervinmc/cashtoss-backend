@@ -317,7 +317,7 @@ class Receipt(Resource):
         else:
             id=id[0][0]
         try:
-            res = self.db.insert(f"INSERT INTO receipt values({id},'{data.get('id')}','{data.get('vendor_name')}','{now}','{data.get('category_name')}','{data.get('image')}',{float(data.get('total'))})")
+            res = self.db.insert(f"INSERT INTO receipt values({id},'{data.get('id')}','{data.get('vendor_name')}','{data.get('date')}','{data.get('category_name')}','{data.get('image')}',{float(data.get('total'))})")
             if(res==[]):
                 print(res)
                 return Response({"status":"Wrong Credentials"},status=404)
@@ -423,4 +423,4 @@ api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0')
+    app.run(debug=True,host='0.0.0.0',port=config("PORT"))
