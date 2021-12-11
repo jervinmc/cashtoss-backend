@@ -172,6 +172,10 @@ class Chatbot(Resource):
                     return {"data":predict.replace('.','')}
                 if(predict.replace('.','')=='Utilities'):
                     return {"data":predict.replace('.','')}
+                if(predict.replace('.','')=='Transportation'):
+                    return {"data":predict.replace('.','')}
+                if(predict.replace('.','')=='Groceries'):
+                    return {"data":predict.replace('.','')}
 
         return {"data":"Others"}
 
@@ -289,7 +293,7 @@ class Receipt(Resource):
         self.db.insert(f"delete from receipt where user_id={pk} ")
 
     def get(self,pk=None):
-        item={"total":0.0,"Medication":0.0,"Store":0.0,"Others":0.0,"Food":0.0,"Transportation":0.0,"Education":0.0,"Utilities":0.0}
+        item={"total":0.0,"Medication":0.0,"Groceries":0.0,"Others":0.0,"Food":0.0,"Transportation":0.0,"Education":0.0,"Utilities":0.0}
         query = self.db.query(f"SELECT categories,sum(total) FROM receipt where user_id = '{pk}' group by categories ")
         total = self.db.query(f"SELECT SUM(total) FROM receipt where user_id='{pk}'")
         # item =  [{f"{x[0]}":float(x[1]) for x in query}]
@@ -304,8 +308,8 @@ class Receipt(Resource):
                 item['Education']=float(x[1])
             elif(x[0]=='Utilities'):
                 item['Utilities']=float(x[1])
-            elif(x[0]=='Store'):
-                item['Store']=float(x[1])
+            elif(x[0]=='Groceries'):
+                item['Groceries']=float(x[1])
             elif(x[0]=='Transportation'):
                 item['Transportation']=float(x[1])
         item['total']=total[0][0]
