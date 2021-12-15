@@ -236,13 +236,13 @@ class Categories(Resource):
         print(category)
         print(pk)
         try:
-            res = self.db.query(f"select * from receipt where categories='{category}' and user_id='{pk}' ")
+            res = self.db.query(f"select * from receipt where categories='{category}' and user_id='{pk}' ORDER BY -id ")
             if(res==[]):
                 print("okay")
                 return None
             else:
                 print(res)
-                listitem=[{"vendor_name":i[2],"created_date":i[3],"category":i[4],
+                listitem=[{"id":i[0],"vendor_name":i[2],"created_date":i[3],"category":i[4],
                 "image":f"https://cashtosspublic.s3.us-east-2.amazonaws.com/{i[5]}","total":i[6]} for i in res]
                 print(listitem)
                 return listitem
@@ -259,38 +259,44 @@ class ResetPassword(Resource):
         res = request.get_json()
         pw = id_generator()
         print(res)
-        self.db.insert(f"UPDATE users set password='{pw}' where email='{res.get('email')}' ")
-        msg = MIMEMultipart()
-        msg.add_header('Content-Type', 'text/html')
-        msg['To'] = str(res.get('email'))
-        msg['Subject'] = "Reset password from Cashtoss App"
-        part1=MIMEText("""\
-            <html>
-                <body>
-                    Here's your new password : """+pw+"""
-                </body>
-            </html>
-            
-            """,'html')
+        isValid = self.db.query(f"select * from users where email='{res.get('email')}' ")
+        if(len(isValid) > 0):
+            self.db.insert(f"UPDATE users set password='{pw}' where email='{res.get('email')}' ")
+            msg = MIMEMultipart()
+            msg.add_header('Content-Type', 'text/html')
+            msg['To'] = str(res.get('email'))
+            msg['Subject'] = "Reset password from Cashtoss App"
+            part1=MIMEText("""\
+                <html>
+                    <body>
+                        Here's your new password : """+pw+"""
+                    </body>
+                </html>
+                
+                """,'html')
 
-        msg.attach(part1)
-        server = smtplib.SMTP('smtp.gmail.com: 587')
-        server.starttls()
-        server.login('Cashtoss8@gmail.com', "Cashtoss2021!")
-        # send the message via the server.
-        server.sendmail('Cashtoss8@gmail.com', msg['To'], msg.as_string())
-
-        server.quit()
-        
-        print("successfully sent email to %s:" % (msg['To']))
-        
-        return {"status":"success"}
+            msg.attach(part1)
+            server = smtplib.SMTP('smtp.gmail.com: 587')
+            server.starttls()
+            server.login('Cashtoss8@gmail.com', "Cashtoss2021!")
+            # send the message via the server.
+            server.sendmail('Cashtoss8@gmail.com', msg['To'], msg.as_string())
+            server.quit()
+            print("successfully sent email to %s:" % (msg['To']))
+            return {"status":"success"}
+        else:
+            print("invalid")
+            return {"status":"invalid"}
 
 class Receipt(Resource):
     def __init__(self):
         self.db=Database()
     def delete(self,pk):
         self.db.insert(f"delete from receipt where user_id={pk} ")
+        return {}
+    def put(self,pk):
+        self.db.insert(f"delete from receipt where id={pk} ")
+        return {}
 
     def get(self,pk=None):
         item={"total":0.0,"Medication":0.0,"Groceries":0.0,"Others":0.0,"Food":0.0,"Transportation":0.0,"Education":0.0,"Utilities":0.0}
@@ -364,6 +370,33 @@ class Login(Resource):
             print(e)
             return {"status":"Failed Input"}
 
+
+class Threshold(Resource):
+    def __init__(self):
+        self.db=Database()
+
+    def get(self,pk=None):
+        print("okay")
+        try:
+            result_settings = self.db.query(f"SELECT totalAmount from users where id={pk} ")
+            total = self.db.query(f"SELECT SUM(total) FROM receipt where user_id='{pk}'")
+            if result_settings[0][0]==0:
+                return {'status':False}
+            elif((total[0][0]/result_settings[0][0]*100)>float(80)):
+                return {'status':True}
+            else:
+                return {'status':False}
+            # if(res==[]):
+            #     print(res)
+            #     return {"status":True}
+            # else:
+            #     print(res[0][0])
+            #     return {"id":res[0][0],"email":res[0][1],"password":res[0][2],"status":201}
+            
+        except Exception as e:
+            print(e)
+            return {"status":False}
+
 class Register(Resource):
     def __init__(self):
         self.db=Database()
@@ -425,6 +458,7 @@ api.add_resource(Chatbot,'/api/v1/chat')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
 api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
 api.add_resource(Settings,'/api/v1/settings/<int:pk>')
+api.add_resource(Threshold,'/api/v1/threshold/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
