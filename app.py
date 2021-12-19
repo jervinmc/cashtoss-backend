@@ -4,6 +4,8 @@ from flask_restful import Resource, Api
 from flask_cors import CORS
 #Imports
 import string
+import requests
+import json
 import random
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -437,6 +439,45 @@ class Settings(Resource):
             return {}
 
 
+class Payment(Resource):
+    def __init__(self):
+        self.db=Database()
+
+    def get(self,pk=None):
+        url = "https://api-m.sandbox.paypal.com/v1/oauth2/token"
+
+        payload='grant_type=client_credentials'
+        headers = {'Authorization': 'Basic QWZoa1BDVUZubXlvZnV3TjNPU2ljTzdaODNnS29YbERVbWJhN21laDNHZXd2QjZlQzFuUTc0SnJNQ1NBTnBZeVV1ZHlqRXZaQm9kYS01cS06RUZtREUweVdxcW95VE42THVMZ0Y3V24wajJpWkdxOGdTa1NPR3phTmxmSEtaeTJ1cGwyRmticmlGbGdrNTVfU0dtRlN2SVZnbVZmOWNYZGs=','Content-Type':'application/x-www-form-urlencoded','Cookie':'cookie_prefs=P%3D1%2CF%3D1%2Ctype%3Dimplicit; enforce_policy=ccpa; ts=vreXpYrS%3D1734306076%26vteXpYrS%3D1639637099%26vt%3Dc1e12b5717dac1200018c0cefffffb00%26vr%3Dc1e12b5717dac1200018c0cefffffaff; ts_c=vr%3Dc1e12b5717dac1200018c0cefffffaff%26vt%3Dc1e12b5717dac1200018c0cefffffb00'}
+        response = requests.request("POST", url, headers=headers, data=payload)
+        x = json.loads(response.text)
+        paymentId=request.args.get('paymentId')
+        PayerID=request.args.get('PayerID')
+        url = f"https://api.sandbox.paypal.com/v1/payments/payment/{paymentId}/execute"
+        payload = json.dumps({
+        "payer_id": PayerID
+        })
+        headers = {"Authorization": f"Bearer {x['access_token']}","Content-Type": "application/json","Cookie": "cookie_prefs=P%3D1%2CF%3D1%2Ctype%3Dimplicit; enforce_policy=ccpa; ts=vreXpYrS%3D1734306076%26vteXpYrS%3D1639637099%26vt%3Dc1e12b5717dac1200018c0cefffffb00%26vr%3Dc1e12b5717dac1200018c0cefffffaff; ts_c=vr%3Dc1e12b5717dac1200018c0cefffffaff%26vt%3Dc1e12b5717dac1200018c0cefffffb00; tsrce=devdiscoverynodeweb"}
+        response = requests.request("POST", url, headers=headers, data=payload)
+        print(response.text)
+        return {"status":response.text}
+
+def toDict(res):
+    s = string.replace("{" ,"")
+    finalstring = s.replace("}" , "")
+
+    #Splitting the string based on , we get key value pairs
+    list = finalstring.split(",")
+
+    dictionary ={}
+    for i in list:
+        #Get Key Value pairs separately to store in dictionary
+        keyvalue = i.split(":")
+
+        #Replacing the single quotes in the leading.
+        m= keyvalue[0].strip('\'')
+        m = m.replace("\"", "")
+        dictionary[m] = keyvalue[1].strip('"\'')
+    return dictionary
 
 class Upload(Resource):
     def __init__(self):
@@ -460,6 +501,7 @@ api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
 api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Threshold,'/api/v1/threshold/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
+api.add_resource(Payment,'/api/v1/payment')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
