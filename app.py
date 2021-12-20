@@ -290,6 +290,33 @@ class ResetPassword(Resource):
             print("invalid")
             return {"status":"invalid"}
 
+
+
+class EmailVerification(Resource):
+    def __init__(self):
+        self.db=Database()
+        
+    def post(self):
+        res = request.get_json()
+        msg = MIMEMultipart()
+        msg.add_header('Content-Type', 'text/html')
+        msg['To'] = str(res.get('email'))
+        msg['Subject'] = "Reset password from Cashtoss App"
+        part1=MIMEText("""\
+            <html><body>Please verify your email <a href='http://server.deathcaremanagement.online/'>Verify</a></body></html>
+            
+            """,'html')
+        msg.attach(part1)
+        server = smtplib.SMTP('smtp.gmail.com: 587')
+        server.starttls()
+        server.login('Cashtoss8@gmail.com', "Cashtoss2021!")
+        # send the message via the server.
+        server.sendmail('Cashtoss8@gmail.com', msg['To'], msg.as_string())
+        server.quit()   
+        print("successfully sent email to %s:" % (msg['To']))
+        return {"status":"success"}
+
+
 class Receipt(Resource):
     def __init__(self):
         self.db=Database()
@@ -497,6 +524,7 @@ api.add_resource(Login,'/api/v1/login')
 api.add_resource(Register,'/api/v1/register')
 api.add_resource(Chatbot,'/api/v1/chat')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
+api.add_resource(EmailVerification,'/api/v1/verification')
 api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
 api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Threshold,'/api/v1/threshold/<int:pk>')
