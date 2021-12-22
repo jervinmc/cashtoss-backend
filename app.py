@@ -301,9 +301,9 @@ class EmailVerification(Resource):
         msg = MIMEMultipart()
         msg.add_header('Content-Type', 'text/html')
         msg['To'] = str(res.get('email'))
-        msg['Subject'] = "Reset password from Cashtoss App"
+        msg['Subject'] = "Verification for deathcareapp"
         part1=MIMEText("""\
-            <html><body>Please verify your email <a href='http://server.deathcaremanagement.online/'>Verify</a></body></html>
+            <html><body>Please verify your email <a href='http://3.144.76.35:5000/api/v1/verified'>Verify</a></body></html>
             
             """,'html')
         msg.attach(part1)
@@ -447,6 +447,11 @@ class Register(Resource):
             return {"status":"Failed Input"}
 
 
+class Verified(Resource):
+    def get(self,pk=None):
+        return {"status":"verified"}
+
+
 class Settings(Resource):
     def __init__(self):
         self.db=Database()
@@ -530,6 +535,7 @@ api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Threshold,'/api/v1/threshold/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
 api.add_resource(Payment,'/api/v1/payment')
+api.add_resource(Verified,'/api/v1/verified')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 api.add_resource(Categories,'/api/v1/categories/<string:category>/<int:pk>')
 if __name__ == "__main__":
