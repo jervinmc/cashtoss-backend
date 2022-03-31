@@ -88,7 +88,9 @@ def match(user_response):
     q_list.append(user_response)
     TfidfVec  = TfidfVectorizer(tokenizer=tokenise, stop_words='english')
     tfidf     = TfidfVec.fit_transform(q_list)
+    print(user_response)
     vals      = cosine_similarity(tfidf[-1], tfidf)
+    print(vals)
     idx       = vals.argsort()[0][-2]
     flat      = vals.flatten()
     flat.sort()
@@ -152,7 +154,7 @@ while s_count < len(sent_tokens):
         s_count+=1
         
 #Response Fetching
-class Chatbot(Resource):
+class Classifier(Resource):
     def post(self): #method.
         res = request.get_json()
         value = res.get('value')
@@ -301,7 +303,7 @@ class EmailVerification(Resource):
         msg = MIMEMultipart()
         msg.add_header('Content-Type', 'text/html')
         msg['To'] = str(res.get('email'))
-        msg['Subject'] = "Verification for deathcareapp"
+        msg['Subject'] = "Verification for Cashtoss App"
         part1=MIMEText("""\
             <html><body>Please verify your email <a href='http://3.144.76.35:5000/api/v1/verified'>Verify</a></body></html>
             
@@ -317,11 +319,14 @@ class EmailVerification(Resource):
         return {"status":"success"}
 
 
+
 class Receipt(Resource):
     def __init__(self):
         self.db=Database()
     def delete(self,pk):
         self.db.insert(f"delete from receipt where user_id={pk} ")
+        print(pk)
+        self.db.insert(f"update users set totalamount=0 where id={pk}")
         return {}
     def put(self,pk):
         self.db.insert(f"delete from receipt where id={pk} ")
@@ -440,6 +445,36 @@ class Register(Resource):
         try:
             id = self.db.query("select max(id)+1 from users")
             res = self.db.insert(f"INSERT INTO users values({id[0][0]},'{data.get('email')}','{data.get('password')}')")
+            msg = MIMEMultipart()
+            msg.add_header('Content-Type', 'text/html')
+            msg['To'] = str(data.get('email'))
+            msg['Subject'] = "Cashtoss Registration Successful"
+            part1=MIMEText("""\
+                <html>
+                    <body>
+                        <div>
+                        Welcome to Cashtoss!</div>
+                        <div>
+                        Hope this expense tracker application address your budget monitoring needs.
+                        </div>
+                        <div>
+                        Sincerly,
+                        </div>
+                        <div>
+                        Cashtoss
+                        </div>
+                    </body>
+                </html>
+                
+                """,'html')
+
+            msg.attach(part1)
+            server = smtplib.SMTP('smtp.gmail.com: 587')
+            server.starttls()
+            server.login('jmacalawapersonal@gmail.com', "wew123WEW")
+            # send the message via the server.
+            server.sendmail('jmacalawapersonal@gmail.com', msg['To'], msg.as_string())
+            server.quit()
             return Response({"status":"Success"},status=201)
             
         except Exception as e:
@@ -450,6 +485,16 @@ class Register(Resource):
 class Verified(Resource):
     def get(self,pk=None):
         return {"status":"verified"}
+
+
+class Receipts(Resource):
+    def __init__(self):
+        self.db=Database()
+
+    def get(self,pk=None):
+        result_settings = self.db.query(f"SELECT * from receipt where user_id={pk} ")
+        print(result_settings)
+        return result_settings
 
 
 class Settings(Resource):
@@ -527,10 +572,11 @@ class Upload(Resource):
 api.add_resource(Usermanagement,'/api/v1/users/<int:pk>')
 api.add_resource(Login,'/api/v1/login')
 api.add_resource(Register,'/api/v1/register')
-api.add_resource(Chatbot,'/api/v1/chat')
+api.add_resource(Classifier,'/api/v1/chat')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
 api.add_resource(EmailVerification,'/api/v1/verification')
 api.add_resource(Receipt,'/api/v1/receipt/<int:pk>')
+api.add_resource(Receipts,'/api/v1/receipts/<int:pk>')
 api.add_resource(Settings,'/api/v1/settings/<int:pk>')
 api.add_resource(Threshold,'/api/v1/threshold/<int:pk>')
 api.add_resource(Upload,'/api/v1/upload/<int:pk>')
