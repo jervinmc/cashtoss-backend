@@ -441,6 +441,7 @@ class Register(Resource):
         data_fetch = self.db.query(f"select * from users where email='{data.get('email')}'")
         
         if(len(data_fetch)>0):
+            print(data_fetch)
             return {"status":"Failed Input"}
         try:
             id = self.db.query("select max(id)+1 from users")
@@ -471,9 +472,9 @@ class Register(Resource):
             msg.attach(part1)
             server = smtplib.SMTP('smtp.gmail.com: 587')
             server.starttls()
-            server.login('jmacalawapersonal@gmail.com', "wew123WEW")
+            server.login('Cashtoss8@gmail.com', "Cashtoss2021!")
             # send the message via the server.
-            server.sendmail('jmacalawapersonal@gmail.com', msg['To'], msg.as_string())
+            server.sendmail('Cashtoss8@gmail.com', msg['To'], msg.as_string())
             server.quit()
             return Response({"status":"Success"},status=201)
             
